@@ -1,0 +1,22 @@
+server:
+  host: "0.0.0.0"
+  port: 8080
+
+temporal:
+  host: "localhost:7233"
+  namespace: "distributed-scanner"
+  task_queue: "scanner-queue"
+
+mongodb:
+  uri: "mongodb://localhost:27017"
+  database: "distributed_scanner"
+
+log:
+  level: "info"
+  format: "json"
+  output: "stdout"
+
+scanner:
+  screenshot_dir: "./screenshots"
+  dict_dir: "./dictionaries"
+  rad_binary: "rad"
