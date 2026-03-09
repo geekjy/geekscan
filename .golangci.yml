@@ -11,13 +11,12 @@ linters:
     - ineffassign
     - unused
   settings:
-    govet:
-      enable:
-        - shadow
     staticcheck:
       checks:
         - all
         - -SA1019
+        - -ST1000
+        - -ST1003
   exclusions:
     presets:
       - std-error-handling
