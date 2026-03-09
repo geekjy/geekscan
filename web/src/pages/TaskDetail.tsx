@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Card,
@@ -53,7 +53,7 @@ export default function TaskDetail() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('port');
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     if (!id) return;
     setLoading(true);
     try {
@@ -65,9 +65,9 @@ export default function TaskDetail() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
 
-  useEffect(() => { fetchData(); }, [id]);
+  useEffect(() => { fetchData(); }, [fetchData]);
 
   const handleAction = async (action: 'pause' | 'resume') => {
     if (!id) return;
