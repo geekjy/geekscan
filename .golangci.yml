@@ -1,7 +1,10 @@
+version: "2"
+
 run:
   timeout: 5m
 
 linters:
+  default: none
   enable:
     - govet
     - staticcheck
@@ -9,25 +12,26 @@ linters:
     - unused
     - gosimple
     - typecheck
-  disable:
-    - errcheck
-
-linters-settings:
-  govet:
-    shadow:
-      strict: false
-  staticcheck:
-    checks:
-      - all
-      - -SA1019
+  settings:
+    govet:
+      enable:
+        - shadow
+    staticcheck:
+      checks:
+        - all
+        - -SA1019
+  exclusions:
+    presets:
+      - std-error-handling
+      - common-false-positives
+    rules:
+      - path: _test\.go
+        linters:
+          - errcheck
+      - path: cmd/
+        linters:
+          - errcheck
 
 issues:
   max-issues-per-linter: 50
   max-same-issues: 10
-  exclude-rules:
-    - path: _test\.go
-      linters:
-        - errcheck
-    - path: cmd/
-      linters:
-        - errcheck
