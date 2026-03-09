@@ -25,7 +25,12 @@ export default function TaskList() {
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { fetchTasks(); }, []);
+  useEffect(() => {
+    getTasks()
+      .then((res) => setTasks(res.data ?? []))
+      .catch(() => setTasks([]))
+      .finally(() => setLoading(false));
+  }, []);
 
   const handlePauseResume = async (task: Task) => {
     try {

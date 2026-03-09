@@ -33,7 +33,7 @@ function DataSourcesTab() {
   const [loading, setLoading] = useState(true);
   const [testing, setTesting] = useState<string | null>(null);
 
-  const fetch = () => {
+  const fetchProviders = () => {
     setLoading(true);
     getProviders()
       .then((res) => setProviders(res.data ?? []))
@@ -41,13 +41,18 @@ function DataSourcesTab() {
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { fetch(); }, []);
+  useEffect(() => {
+    getProviders()
+      .then((res) => setProviders(res.data ?? []))
+      .catch(() => setProviders([]))
+      .finally(() => setLoading(false));
+  }, []);
 
   const handleToggle = async (provider: Provider, enabled: boolean) => {
     try {
       await updateProvider(provider.id, { enabled });
       message.success(`${provider.name} 已${enabled ? '启用' : '禁用'}`);
-      fetch();
+      fetchProviders();
     } catch {
       message.error('操作失败');
     }
@@ -136,7 +141,7 @@ function DictionariesTab() {
   const [previewTitle, setPreviewTitle] = useState('');
   const [uploadType, setUploadType] = useState('directory');
 
-  const fetch = () => {
+  const fetchDicts = () => {
     setLoading(true);
     getDictionaries()
       .then((res) => setDicts(res.data ?? []))
@@ -144,7 +149,12 @@ function DictionariesTab() {
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { fetch(); }, []);
+  useEffect(() => {
+    getDictionaries()
+      .then((res) => setDicts(res.data ?? []))
+      .catch(() => setDicts([]))
+      .finally(() => setLoading(false));
+  }, []);
 
   const handlePreview = async (dict: Dictionary) => {
     try {
@@ -161,7 +171,7 @@ function DictionariesTab() {
     try {
       await deleteDictionary(id);
       message.success('已删除');
-      fetch();
+      fetchDicts();
     } catch {
       message.error('删除失败');
     }
@@ -213,7 +223,7 @@ function DictionariesTab() {
             try {
               await uploadDictionary(file as File, uploadType);
               message.success('上传成功');
-              fetch();
+              fetchDicts();
               onSuccess?.(null);
             } catch {
               message.error('上传失败');
