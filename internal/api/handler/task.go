@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"net"
 	"net/http"
 	"strconv"
 
@@ -40,6 +41,8 @@ func (h *TaskHandler) Create(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "targets is required"})
 		return
 	}
+
+	task.Domains, task.IPs = classifyTargets(task.Targets)
 
 	if err := h.taskStore.Create(c.Request.Context(), &task); err != nil {
 		logger.L.Errorw("failed to create task", "error", err)
@@ -197,6 +200,19 @@ func (h *TaskHandler) Delete(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "task deleted"})
+}
+
+func classifyTargets(targets []string) (domains, ips []string) {
+	for _, t := range targets {
+		if _, _, err := net.ParseCIDR(t); err == nil {
+			ips = append(ips, t)
+		} else if net.ParseIP(t) != nil {
+			ips = append(ips, t)
+		} else {
+			domains = append(domains, t)
+		}
+	}
+	return
 }
 
 func (h *TaskHandler) GetResults(c *gin.Context) {

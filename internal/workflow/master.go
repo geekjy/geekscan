@@ -7,10 +7,6 @@ import (
 	"go.temporal.io/sdk/workflow"
 )
 
-type MasterScanInput struct {
-	Task model.ScanTask `json:"task"`
-}
-
 type MasterScanOutput struct {
 	PortResults      []model.PortResult  `json:"port_results"`
 	HttpxResults     []model.HttpxResult `json:"httpx_results"`
@@ -21,7 +17,7 @@ type MasterScanOutput struct {
 	AwvsVulnResults  []model.VulnResult  `json:"awvs_vuln_results"`
 }
 
-func MasterScanWorkflow(ctx workflow.Context, input MasterScanInput) (*MasterScanOutput, error) {
+func MasterScanWorkflow(ctx workflow.Context, task model.ScanTask) (*MasterScanOutput, error) {
 	logger := workflow.GetLogger(ctx)
 	logger.Info("MasterScanWorkflow started")
 
@@ -32,7 +28,6 @@ func MasterScanWorkflow(ctx workflow.Context, input MasterScanInput) (*MasterSca
 	ctx = workflow.WithActivityOptions(ctx, ao)
 
 	output := &MasterScanOutput{}
-	task := input.Task
 
 	// ===== Stage 1: Asset Discovery (parallel) =====
 	var subdomains []string
