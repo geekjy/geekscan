@@ -28,10 +28,28 @@ import {
   type Dictionary,
 } from '../api/client';
 
+const providerTypeMap: Record<string, string> = {
+  shodan: '网络空间搜索',
+  censys: '网络空间搜索',
+  fofa: '网络空间搜索',
+  hunter: '网络空间搜索',
+  quake: '网络空间搜索',
+  zoomeye: '网络空间搜索',
+  binaryedge: '网络空间搜索',
+  virustotal: '威胁情报',
+  securitytrails: '威胁情报',
+  passivetotal: '威胁情报',
+  chaos: '子域名枚举',
+  github: '代码托管',
+  gitlab: '代码托管',
+  awvs: '漏洞扫描器',
+};
+
 function DataSourcesTab() {
   const [providers, setProviders] = useState<Provider[]>([]);
   const [loading, setLoading] = useState(true);
   const [testing, setTesting] = useState<string | null>(null);
+  const [editedKeys, setEditedKeys] = useState<Record<string, string>>({});
 
   const fetchProviders = () => {
     setLoading(true);
@@ -42,37 +60,40 @@ function DataSourcesTab() {
   };
 
   useEffect(() => {
-    getProviders()
-      .then((res) => setProviders(Array.isArray(res.data) ? res.data : []))
-      .catch(() => setProviders([]))
-      .finally(() => setLoading(false));
+    fetchProviders();
   }, []);
 
-  const handleToggle = async (provider: Provider, enabled: boolean) => {
+  const handleToggle = async (record: Provider, enabled: boolean) => {
     try {
-      await updateProvider(provider.id, { enabled });
-      message.success(`${provider.name} 已${enabled ? '启用' : '禁用'}`);
+      await updateProvider(record.provider, { enabled });
+      message.success(`${record.provider} 已${enabled ? '启用' : '禁用'}`);
       fetchProviders();
     } catch {
       message.error('操作失败');
     }
   };
 
-  const handleSaveKey = async (provider: Provider, apiKey: string) => {
+  const handleSaveKey = async (record: Provider, apiKey: string) => {
     try {
-      await updateProvider(provider.id, { api_key: apiKey });
+      await updateProvider(record.provider, { api_key: apiKey });
       message.success('API Key 已保存');
+      fetchProviders();
     } catch {
       message.error('保存失败');
     }
   };
 
-  const handleTest = async (id: string) => {
-    setTesting(id);
+  const handleTest = async (record: Provider) => {
+    const apiKey = editedKeys[record.provider] || record.api_key || '';
+    if (!apiKey) {
+      message.warning('请先输入 API Key');
+      return;
+    }
+    setTesting(record.provider);
     try {
-      const res = await testProvider(id);
-      if (res.data.ok) message.success('连接测试成功');
-      else message.error('连接测试失败');
+      const res = await testProvider(record.provider, apiKey);
+      if (res.data.valid) message.success('连接测试成功');
+      else message.error(res.data.message || '连接测试失败');
     } catch {
       message.error('连接测试失败');
     } finally {
@@ -81,8 +102,17 @@ function DataSourcesTab() {
   };
 
   const columns = [
-    { title: '名称', dataIndex: 'name', key: 'name' },
-    { title: '类型', dataIndex: 'type', key: 'type' },
+    {
+      title: '名称',
+      dataIndex: 'provider',
+      key: 'provider',
+      render: (name: string) => <span style={{ fontWeight: 500 }}>{name}</span>,
+    },
+    {
+      title: '类型',
+      key: 'type',
+      render: (_: unknown, record: Provider) => providerTypeMap[record.provider] || '-',
+    },
     {
       title: 'API Key',
       key: 'api_key',
@@ -91,9 +121,13 @@ function DataSourcesTab() {
           defaultValue={record.api_key}
           placeholder="输入 API Key"
           style={{ width: 240 }}
+          onChange={(e) =>
+            setEditedKeys((prev) => ({ ...prev, [record.provider]: e.target.value }))
+          }
           onBlur={(e) => {
-            if (e.target.value !== record.api_key) {
-              handleSaveKey(record, e.target.value);
+            const val = e.target.value;
+            if (val && val !== record.api_key) {
+              handleSaveKey(record, val);
             }
           }}
         />
@@ -112,8 +146,8 @@ function DataSourcesTab() {
       render: (_: unknown, record: Provider) => (
         <Button
           icon={<CheckCircleOutlined />}
-          loading={testing === record.id}
-          onClick={() => handleTest(record.id)}
+          loading={testing === record.provider}
+          onClick={() => handleTest(record)}
           size="small"
         >
           测试
@@ -126,7 +160,7 @@ function DataSourcesTab() {
     <Table
       columns={columns}
       dataSource={providers}
-      rowKey="id"
+      rowKey="provider"
       loading={loading}
       pagination={false}
     />

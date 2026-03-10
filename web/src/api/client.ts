@@ -53,12 +53,11 @@ export interface ScanResult {
 }
 
 export interface Provider {
-  id: string;
-  name: string;
-  type: string;
-  api_key: string;
+  provider: string;
+  configured: boolean;
+  api_key?: string;
+  api_secret?: string;
   enabled: boolean;
-  base_url?: string;
 }
 
 export interface Dictionary {
@@ -81,10 +80,11 @@ export const getResults = (taskId: string, type?: string) =>
   api.get<ScanResult[]>(`/tasks/${taskId}/results`, { params: type ? { type } : undefined });
 
 export const getProviders = () => api.get<Provider[]>('/providers');
-export const updateProvider = (id: string, data: Partial<Provider>) =>
-  api.put<Provider>(`/providers/${id}`, data);
-export const deleteProvider = (id: string) => api.delete(`/providers/${id}`);
-export const testProvider = (id: string) => api.post<{ ok: boolean }>(`/providers/${id}/test`);
+export const updateProvider = (name: string, data: { api_key?: string; api_secret?: string; enabled?: boolean }) =>
+  api.put(`/providers/${name}`, data);
+export const deleteProvider = (name: string) => api.delete(`/providers/${name}`);
+export const testProvider = (provider: string, apiKey: string) =>
+  api.post<{ provider: string; valid: boolean; message?: string }>('/providers/test', { provider, api_key: apiKey });
 
 export const getDictionaries = () => api.get<Dictionary[]>('/dictionaries');
 export const uploadDictionary = (file: File, type: string) => {
