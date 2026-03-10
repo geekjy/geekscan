@@ -3,12 +3,12 @@ server:
   port: 8080
 
 temporal:
-  host: "localhost:7233"
-  namespace: "distributed-scanner"
+  host: "192.168.111.193:7233"
+  namespace: "default"
   task_queue: "scanner-queue"
 
 mongodb:
-  uri: "mongodb://localhost:27017"
+  uri: "mongodb://192.168.111.193:27017"
   database: "distributed_scanner"
 
 log:
