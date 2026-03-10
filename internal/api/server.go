@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/gin-gonic/gin"
@@ -33,6 +34,12 @@ func NewServer(cfg *config.Config, db *store.MongoDB) (*Server, error) {
 	s.engine.Use(gin.Recovery())
 	s.engine.Use(middleware.CORS())
 	s.setupRoutes()
+
+	dictStore := store.NewDictionaryStore(db)
+	if err := dictStore.SeedBuiltinDictionaries(context.Background(), cfg.Scanner.DictDir); err != nil {
+		logger.L.Warnw("failed to seed builtin dictionaries", "error", err)
+	}
+
 	return s, nil
 }
 

@@ -1,12 +1,17 @@
 package store
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"io"
+	"os"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/xiaoyu/distributed-scanner/internal/model"
+	"github.com/xiaoyu/distributed-scanner/pkg/logger"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo/gridfs"
@@ -102,4 +107,66 @@ func (s *DictionaryStore) Delete(ctx context.Context, id primitive.ObjectID) err
 
 	_, err = s.db.Collection(s.col()).DeleteOne(ctx, bson.M{"_id": id})
 	return err
+}
+
+var builtinDictTypes = map[string]string{
+	"common.txt":           "dir",
+	"api-endpoints.txt":    "api",
+	"sensitive-files.txt":  "file",
+	"users-common.txt":     "user",
+	"passwords-common.txt": "password",
+}
+
+func (s *DictionaryStore) SeedBuiltinDictionaries(ctx context.Context, dictDir string) error {
+	entries, err := os.ReadDir(dictDir)
+	if err != nil {
+		return err
+	}
+
+	for _, entry := range entries {
+		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".txt") {
+			continue
+		}
+
+		count, _ := s.db.Collection(s.col()).CountDocuments(ctx, bson.M{
+			"name":       entry.Name(),
+			"is_builtin": true,
+		})
+		if count > 0 {
+			continue
+		}
+
+		content, err := os.ReadFile(filepath.Join(dictDir, entry.Name()))
+		if err != nil {
+			logger.L.Warnw("failed to read builtin dictionary file", "file", entry.Name(), "error", err)
+			continue
+		}
+
+		lineCount := 0
+		scanner := bufio.NewScanner(bytes.NewReader(content))
+		for scanner.Scan() {
+			if strings.TrimSpace(scanner.Text()) != "" {
+				lineCount++
+			}
+		}
+
+		dictType := builtinDictTypes[entry.Name()]
+		if dictType == "" {
+			dictType = "custom"
+		}
+
+		dict := &model.Dictionary{
+			Name:      entry.Name(),
+			Type:      dictType,
+			LineCount: lineCount,
+			IsBuiltin: true,
+		}
+
+		if err := s.Create(ctx, dict, content); err != nil {
+			logger.L.Warnw("failed to seed builtin dictionary", "file", entry.Name(), "error", err)
+			continue
+		}
+		logger.L.Infow("seeded builtin dictionary", "name", entry.Name(), "lines", lineCount)
+	}
+	return nil
 }
