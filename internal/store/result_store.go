@@ -65,7 +65,29 @@ func (s *ResultStore) GetByTaskID(ctx context.Context, taskID primitive.ObjectID
 	if err := cursor.All(ctx, &results); err != nil {
 		return nil, 0, err
 	}
+	for _, r := range results {
+		r.Data = bsonDToMap(r.Data)
+	}
 	return results, total, nil
+}
+
+func bsonDToMap(v interface{}) interface{} {
+	switch val := v.(type) {
+	case bson.D:
+		m := make(map[string]interface{}, len(val))
+		for _, e := range val {
+			m[e.Key] = bsonDToMap(e.Value)
+		}
+		return m
+	case bson.A:
+		a := make([]interface{}, len(val))
+		for i, item := range val {
+			a[i] = bsonDToMap(item)
+		}
+		return a
+	default:
+		return v
+	}
 }
 
 func (s *ResultStore) DeleteByTaskID(ctx context.Context, taskID primitive.ObjectID) error {
