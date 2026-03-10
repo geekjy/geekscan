@@ -29,4 +29,6 @@ func Register(w worker.Worker, cfg *config.Config, db *store.MongoDB) {
 	w.RegisterActivity(acts.AwvsCreateScanActivity)
 	w.RegisterActivity(acts.AwvsPollScanActivity)
 	w.RegisterActivity(acts.ReportActivity)
+	w.RegisterActivity(acts.SaveResultsActivity)
+	w.RegisterActivity(acts.UpdateTaskStatusActivity)
 }

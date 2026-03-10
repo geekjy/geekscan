@@ -288,6 +288,42 @@ func (a *Activities) AwvsPollScanActivity(ctx context.Context, scanID string, op
 	return results, nil
 }
 
+func (a *Activities) SaveResultsActivity(ctx context.Context, taskID string, resultType string, data []interface{}) error {
+	logger.L.Infow("SaveResultsActivity started", "taskID", taskID, "type", resultType, "count", len(data))
+
+	oid, err := primitive.ObjectIDFromHex(taskID)
+	if err != nil {
+		return fmt.Errorf("invalid task ID: %w", err)
+	}
+
+	resultStore := store.NewResultStore(a.db)
+	if err := resultStore.SaveBatch(ctx, oid, resultType, data); err != nil {
+		logger.L.Errorw("SaveResultsActivity failed", "error", err)
+		return err
+	}
+
+	logger.L.Infow("SaveResultsActivity completed", "taskID", taskID, "type", resultType, "saved", len(data))
+	return nil
+}
+
+func (a *Activities) UpdateTaskStatusActivity(ctx context.Context, taskID string, status string) error {
+	logger.L.Infow("UpdateTaskStatusActivity started", "taskID", taskID, "status", status)
+
+	oid, err := primitive.ObjectIDFromHex(taskID)
+	if err != nil {
+		return fmt.Errorf("invalid task ID: %w", err)
+	}
+
+	taskStore := store.NewTaskStore(a.db)
+	if err := taskStore.UpdateStatus(ctx, oid, model.TaskStatus(status)); err != nil {
+		logger.L.Errorw("UpdateTaskStatusActivity failed", "error", err)
+		return err
+	}
+
+	logger.L.Infow("UpdateTaskStatusActivity completed", "taskID", taskID, "status", status)
+	return nil
+}
+
 func (a *Activities) ReportActivity(ctx context.Context, taskID string, format string) (string, error) {
 	logger.L.Infow("ReportActivity started", "taskID", taskID, "format", format)
 

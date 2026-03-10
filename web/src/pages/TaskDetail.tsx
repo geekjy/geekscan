@@ -38,10 +38,10 @@ const severityColorMap: Record<string, string> = {
 
 const resultTypes = [
   { key: 'port', label: '端口' },
-  { key: 'fingerprint', label: '指纹' },
-  { key: 'directory', label: '目录' },
+  { key: 'httpx', label: '指纹' },
+  { key: 'dir', label: '目录' },
   { key: 'crawl', label: '爬取URL' },
-  { key: 'vulnerability', label: '漏洞' },
+  { key: 'vuln', label: '漏洞' },
   { key: 'brute', label: '暴力破解' },
 ];
 
@@ -82,15 +82,16 @@ export default function TaskDetail() {
   };
 
   const filteredResults = results.filter((r) => r.type === activeTab);
+  const tableData = filteredResults.map((r) => ({ ...r.data, _id: r.id }));
 
   const portColumns = [
-    { title: '主机', dataIndex: 'host', key: 'host' },
+    { title: '主机', dataIndex: 'ip', key: 'ip' },
     { title: '端口', dataIndex: 'port', key: 'port' },
     { title: '协议', dataIndex: 'protocol', key: 'protocol' },
     { title: '服务', dataIndex: 'service', key: 'service' },
   ];
 
-  const fingerprintColumns = [
+  const httpxColumns = [
     { title: '主机', dataIndex: 'host', key: 'host' },
     { title: 'URL', dataIndex: 'url', key: 'url', ellipsis: true },
     { title: '标题', dataIndex: 'title', key: 'title', ellipsis: true },
@@ -103,7 +104,7 @@ export default function TaskDetail() {
     },
   ];
 
-  const directoryColumns = [
+  const dirColumns = [
     { title: '主机', dataIndex: 'host', key: 'host' },
     { title: '路径', dataIndex: 'path', key: 'path', ellipsis: true },
     { title: '状态码', dataIndex: 'status_code', key: 'status_code' },
@@ -116,7 +117,7 @@ export default function TaskDetail() {
 
   const vulnColumns = [
     { title: '主机', dataIndex: 'host', key: 'host' },
-    { title: '漏洞名称', dataIndex: 'vuln_name', key: 'vuln_name', ellipsis: true },
+    { title: '漏洞名称', dataIndex: 'name', key: 'name', ellipsis: true },
     {
       title: '等级',
       dataIndex: 'severity',
@@ -136,12 +137,13 @@ export default function TaskDetail() {
     { title: '密码', dataIndex: 'password', key: 'password' },
   ];
 
-  const columnMap: Record<string, typeof portColumns> = {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const columnMap: Record<string, any[]> = {
     port: portColumns,
-    fingerprint: fingerprintColumns,
-    directory: directoryColumns,
+    httpx: httpxColumns,
+    dir: dirColumns,
     crawl: crawlColumns,
-    vulnerability: vulnColumns,
+    vuln: vulnColumns,
     brute: bruteColumns,
   };
 
@@ -205,8 +207,8 @@ export default function TaskDetail() {
             children: (
               <Table
                 columns={columnMap[rt.key] || portColumns}
-                dataSource={filteredResults}
-                rowKey="id"
+                dataSource={results.filter((r) => r.type === rt.key).map((r) => ({ ...r.data, _id: r.id }))}
+                rowKey="_id"
                 size="middle"
                 pagination={{ pageSize: 20 }}
               />

@@ -76,8 +76,8 @@ export const pauseTask = (id: string) => api.post(`/tasks/${id}/pause`);
 export const resumeTask = (id: string) => api.post(`/tasks/${id}/resume`);
 export const deleteTask = (id: string) => api.delete(`/tasks/${id}`);
 
-export const getResults = (taskId: string, type?: string) =>
-  api.get<ScanResult[]>(`/tasks/${taskId}/results`, { params: type ? { type } : undefined });
+export const getResults = (taskId: string, type?: string, pageSize = 200) =>
+  api.get<ScanResult[]>(`/tasks/${taskId}/results`, { params: { ...(type ? { type } : {}), page_size: pageSize } });
 
 export const getProviders = () => api.get<Provider[]>('/providers');
 export const updateProvider = (name: string, data: { api_key?: string; api_secret?: string; enabled?: boolean }) =>

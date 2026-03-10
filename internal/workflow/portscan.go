@@ -1,6 +1,7 @@
 package workflow
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/xiaoyu/distributed-scanner/internal/model"
@@ -55,7 +56,7 @@ func PortScanWorkflow(ctx workflow.Context, input PortScanInput) (*PortScanOutpu
 			continue
 		}
 		for _, p := range result.OpenPorts {
-			key := p.IP + ":" + string(rune(p.Port)) + ":" + p.Protocol
+			key := fmt.Sprintf("%s:%d:%s", p.IP, p.Port, p.Protocol)
 			if !seen[key] {
 				seen[key] = true
 				output.OpenPorts = append(output.OpenPorts, p)
@@ -81,10 +82,8 @@ func resolvePortStrategy(opts model.NaabuOptions) []model.PortChunk {
 	switch opts.PortStrategy {
 	case "full":
 		return []model.PortChunk{{Start: 1, End: 65535}}
-	case "top100":
-		return []model.PortChunk{{Start: 1, End: 100}}
-	case "top1000":
-		return []model.PortChunk{{Start: 1, End: 1000}}
+	case "top100", "top1000":
+		return []model.PortChunk{{Start: 1, End: 65535}}
 	case "custom":
 		return []model.PortChunk{{Start: 1, End: 65535}}
 	default:

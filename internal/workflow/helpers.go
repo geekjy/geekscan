@@ -46,10 +46,9 @@ func expandHostTargets(hostIPMap map[string][]string, ipPortMap map[string][]mod
 			if ports, ok := ipPortMap[ip]; ok {
 				for _, p := range ports {
 					targets = append(targets, model.HttpxTarget{
-						Host:     host,
-						IP:       ip,
-						Port:     p.Port,
-						Protocol: p.Protocol,
+						Host: host,
+						IP:   ip,
+						Port: p.Port,
 					})
 				}
 			}

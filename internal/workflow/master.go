@@ -21,11 +21,18 @@ func MasterScanWorkflow(ctx workflow.Context, task model.ScanTask) (*MasterScanO
 	logger := workflow.GetLogger(ctx)
 	logger.Info("MasterScanWorkflow started")
 
+	taskID := task.ID.Hex()
+
 	ao := workflow.ActivityOptions{
 		StartToCloseTimeout: 30 * time.Minute,
 		HeartbeatTimeout:    2 * time.Minute,
 	}
 	ctx = workflow.WithActivityOptions(ctx, ao)
+
+	saveAO := workflow.ActivityOptions{
+		StartToCloseTimeout: 5 * time.Minute,
+	}
+	saveCtx := workflow.WithActivityOptions(ctx, saveAO)
 
 	output := &MasterScanOutput{}
 
@@ -65,6 +72,14 @@ func MasterScanWorkflow(ctx workflow.Context, task model.ScanTask) (*MasterScanO
 	}
 	output.PortResults = portScanOutput.OpenPorts
 
+	if len(output.PortResults) > 0 {
+		portData := make([]interface{}, len(output.PortResults))
+		for i, p := range output.PortResults {
+			portData[i] = p
+		}
+		_ = workflow.ExecuteActivity(saveCtx, "SaveResultsActivity", taskID, "port", portData).Get(ctx, nil)
+	}
+
 	ipPortMap := buildIPPortMap(portScanOutput.OpenPorts)
 
 	// ===== Stage 4: Two parallel tracks =====
@@ -90,6 +105,14 @@ func MasterScanWorkflow(ctx workflow.Context, task model.ScanTask) (*MasterScanO
 		logger.Warn("httpx failed", "error", err)
 	}
 	output.HttpxResults = httpxResults
+
+	if len(output.HttpxResults) > 0 {
+		httpxData := make([]interface{}, len(output.HttpxResults))
+		for i, h := range output.HttpxResults {
+			httpxData[i] = h
+		}
+		_ = workflow.ExecuteActivity(saveCtx, "SaveResultsActivity", taskID, "httpx", httpxData).Get(ctx, nil)
+	}
 
 	aliveWebs := filterAliveWebs(httpxResults)
 
@@ -130,12 +153,28 @@ func MasterScanWorkflow(ctx workflow.Context, task model.ScanTask) (*MasterScanO
 		}
 	}
 
+	if len(output.DirResults) > 0 {
+		dirData := make([]interface{}, len(output.DirResults))
+		for i, d := range output.DirResults {
+			dirData[i] = d
+		}
+		_ = workflow.ExecuteActivity(saveCtx, "SaveResultsActivity", taskID, "dir", dirData).Get(ctx, nil)
+	}
+
 	// Collect rad results
 	for _, f := range radFutures {
 		var crawls []model.CrawlResult
 		if err := f.Get(ctx, &crawls); err == nil {
 			output.CrawlResults = append(output.CrawlResults, crawls...)
 		}
+	}
+
+	if len(output.CrawlResults) > 0 {
+		crawlData := make([]interface{}, len(output.CrawlResults))
+		for i, c := range output.CrawlResults {
+			crawlData[i] = c
+		}
+		_ = workflow.ExecuteActivity(saveCtx, "SaveResultsActivity", taskID, "crawl", crawlData).Get(ctx, nil)
 	}
 
 	// Stage 7: Nuclei
@@ -152,6 +191,14 @@ func MasterScanWorkflow(ctx workflow.Context, task model.ScanTask) (*MasterScanO
 		}
 	}
 
+	if len(output.VulnResults) > 0 {
+		vulnData := make([]interface{}, len(output.VulnResults))
+		for i, v := range output.VulnResults {
+			vulnData[i] = v
+		}
+		_ = workflow.ExecuteActivity(saveCtx, "SaveResultsActivity", taskID, "vuln", vulnData).Get(ctx, nil)
+	}
+
 	// Stage 8: Wait for brute force
 	if bruteFuture != nil {
 		var bruteOutput BruteForceOutput
@@ -159,6 +206,17 @@ func MasterScanWorkflow(ctx workflow.Context, task model.ScanTask) (*MasterScanO
 			output.BruteResults = bruteOutput.Results
 		}
 	}
+
+	if len(output.BruteResults) > 0 {
+		bruteData := make([]interface{}, len(output.BruteResults))
+		for i, b := range output.BruteResults {
+			bruteData[i] = b
+		}
+		_ = workflow.ExecuteActivity(saveCtx, "SaveResultsActivity", taskID, "brute", bruteData).Get(ctx, nil)
+	}
+
+	// Mark task as completed
+	_ = workflow.ExecuteActivity(saveCtx, "UpdateTaskStatusActivity", taskID, string(model.TaskStatusCompleted)).Get(ctx, nil)
 
 	logger.Info("MasterScanWorkflow completed")
 	return output, nil
