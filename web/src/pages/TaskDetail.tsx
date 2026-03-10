@@ -98,9 +98,6 @@ export default function TaskDetail() {
     }
   };
 
-  const filteredResults = results.filter((r) => r.type === activeTab);
-  const tableData = filteredResults.map((r) => ({ ...flattenData(r.data), _id: r.id }));
-
   const subdomainColumns = [
     { title: '子域名', dataIndex: 'host', key: 'host' },
     {
