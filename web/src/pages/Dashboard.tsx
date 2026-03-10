@@ -24,7 +24,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     getTasks()
-      .then((res) => setTasks(res.data ?? []))
+      .then((res) => setTasks(Array.isArray(res.data) ? res.data : []))
       .catch(() => setTasks([]))
       .finally(() => setLoading(false));
   }, []);

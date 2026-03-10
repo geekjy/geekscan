@@ -59,7 +59,7 @@ export default function TaskDetail() {
     try {
       const [taskRes, resultsRes] = await Promise.all([getTask(id), getResults(id)]);
       setTask(taskRes.data);
-      setResults(resultsRes.data ?? []);
+      setResults(Array.isArray(resultsRes.data) ? resultsRes.data : []);
     } catch {
       message.error('加载任务详情失败');
     } finally {

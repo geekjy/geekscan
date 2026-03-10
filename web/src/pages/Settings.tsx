@@ -36,14 +36,14 @@ function DataSourcesTab() {
   const fetchProviders = () => {
     setLoading(true);
     getProviders()
-      .then((res) => setProviders(res.data ?? []))
+      .then((res) => setProviders(Array.isArray(res.data) ? res.data : []))
       .catch(() => setProviders([]))
       .finally(() => setLoading(false));
   };
 
   useEffect(() => {
     getProviders()
-      .then((res) => setProviders(res.data ?? []))
+      .then((res) => setProviders(Array.isArray(res.data) ? res.data : []))
       .catch(() => setProviders([]))
       .finally(() => setLoading(false));
   }, []);
@@ -144,14 +144,14 @@ function DictionariesTab() {
   const fetchDicts = () => {
     setLoading(true);
     getDictionaries()
-      .then((res) => setDicts(res.data ?? []))
+      .then((res) => setDicts(Array.isArray(res.data) ? res.data : []))
       .catch(() => setDicts([]))
       .finally(() => setLoading(false));
   };
 
   useEffect(() => {
     getDictionaries()
-      .then((res) => setDicts(res.data ?? []))
+      .then((res) => setDicts(Array.isArray(res.data) ? res.data : []))
       .catch(() => setDicts([]))
       .finally(() => setLoading(false));
   }, []);

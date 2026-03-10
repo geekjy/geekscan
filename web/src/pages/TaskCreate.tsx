@@ -25,7 +25,7 @@ export default function TaskCreate() {
 
   useEffect(() => {
     getDictionaries()
-      .then((res) => setDictionaries(res.data ?? []))
+      .then((res) => setDictionaries(Array.isArray(res.data) ? res.data : []))
       .catch(() => {});
   }, []);
 
