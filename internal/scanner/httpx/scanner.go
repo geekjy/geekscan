@@ -11,6 +11,7 @@ import (
 	"regexp"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/xiaoyu/distributed-scanner/internal/model"
@@ -95,7 +96,9 @@ type ScanInput struct {
 	Options model.HttpxOptions  `json:"options"`
 }
 
-func Scan(ctx context.Context, input ScanInput) ([]model.HttpxResult, error) {
+type HeartbeatFunc func(progress float64)
+
+func Scan(ctx context.Context, input ScanInput, heartbeat ...HeartbeatFunc) ([]model.HttpxResult, error) {
 	opts := input.Options
 	threads := coalesce(opts.Threads, defaultThreads)
 	timeout := time.Duration(coalesce(opts.Timeout, defaultTimeoutS)) * time.Second
@@ -111,6 +114,7 @@ func Scan(ctx context.Context, input ScanInput) ([]model.HttpxResult, error) {
 	var (
 		mu      sync.Mutex
 		results []model.HttpxResult
+		scanned int64
 	)
 
 	transport := &http.Transport{
@@ -150,6 +154,12 @@ func Scan(ctx context.Context, input ScanInput) ([]model.HttpxResult, error) {
 		rateLimiter = ticker.C
 	}
 
+	total := int64(len(input.Targets))
+	var hbFunc HeartbeatFunc
+	if len(heartbeat) > 0 {
+		hbFunc = heartbeat[0]
+	}
+
 	var wg sync.WaitGroup
 	for i := 0; i < threads; i++ {
 		wg.Add(1)
@@ -167,6 +177,7 @@ func Scan(ctx context.Context, input ScanInput) ([]model.HttpxResult, error) {
 					}
 				}
 				result := probeTarget(ctx, client, target, opts, retries)
+				atomic.AddInt64(&scanned, 1)
 				if result == nil {
 					continue
 				}
@@ -191,7 +202,27 @@ func Scan(ctx context.Context, input ScanInput) ([]model.HttpxResult, error) {
 		}
 	}()
 
-	wg.Wait()
+	if hbFunc != nil {
+		done := make(chan struct{})
+		go func() {
+			ticker := time.NewTicker(30 * time.Second)
+			defer ticker.Stop()
+			for {
+				select {
+				case <-ticker.C:
+					n := atomic.LoadInt64(&scanned)
+					hbFunc(float64(n) / float64(total))
+				case <-done:
+					return
+				}
+			}
+		}()
+		wg.Wait()
+		close(done)
+	} else {
+		wg.Wait()
+	}
+
 	logger.L.Infow("httpx scan completed", "results", len(results))
 	return results, nil
 }

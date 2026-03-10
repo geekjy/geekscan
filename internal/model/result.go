@@ -6,6 +6,11 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
+type SubdomainResult struct {
+	Host string   `json:"host" bson:"host"`
+	IPs  []string `json:"ips" bson:"ips"`
+}
+
 type PortResult struct {
 	IP       string `json:"ip" bson:"ip"`
 	Port     int    `json:"port" bson:"port"`

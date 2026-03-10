@@ -56,6 +56,18 @@ func MasterScanWorkflow(ctx workflow.Context, task model.ScanTask) (*MasterScanO
 	hostIPMap := buildHostIPMap(allDomains, dnsMap, task.IPs)
 	uniqueIPs := extractUniqueIPs(hostIPMap)
 
+	// Save subdomain results
+	if len(allDomains) > 0 {
+		subData := make([]interface{}, len(allDomains))
+		for i, d := range allDomains {
+			subData[i] = model.SubdomainResult{
+				Host: d,
+				IPs:  hostIPMap[d],
+			}
+		}
+		_ = workflow.ExecuteActivity(saveCtx, "SaveResultsActivity", taskID, "subdomain", subData).Get(ctx, nil)
+	}
+
 	// ===== Stage 3: Port Scan =====
 	portScanInput := PortScanInput{
 		IPs:     uniqueIPs,

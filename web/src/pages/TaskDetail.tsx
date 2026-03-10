@@ -37,6 +37,7 @@ const severityColorMap: Record<string, string> = {
 };
 
 const resultTypes = [
+  { key: 'subdomain', label: '子域名' },
   { key: 'port', label: '端口' },
   { key: 'httpx', label: '指纹' },
   { key: 'dir', label: '目录' },
@@ -45,13 +46,29 @@ const resultTypes = [
   { key: 'brute', label: '暴力破解' },
 ];
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function flattenData(data: any): Record<string, unknown> {
+  if (!data) return {};
+  if (Array.isArray(data)) {
+    const obj: Record<string, unknown> = {};
+    for (const item of data) {
+      if (item && typeof item === 'object' && 'Key' in item && 'Value' in item) {
+        obj[item.Key] = item.Value;
+      }
+    }
+    return obj;
+  }
+  if (typeof data === 'object') return data as Record<string, unknown>;
+  return {};
+}
+
 export default function TaskDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [task, setTask] = useState<Task | null>(null);
   const [results, setResults] = useState<ScanResult[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('port');
+  const [activeTab, setActiveTab] = useState('subdomain');
 
   const fetchData = useCallback(async () => {
     if (!id) return;
@@ -82,7 +99,17 @@ export default function TaskDetail() {
   };
 
   const filteredResults = results.filter((r) => r.type === activeTab);
-  const tableData = filteredResults.map((r) => ({ ...r.data, _id: r.id }));
+  const tableData = filteredResults.map((r) => ({ ...flattenData(r.data), _id: r.id }));
+
+  const subdomainColumns = [
+    { title: '子域名', dataIndex: 'host', key: 'host' },
+    {
+      title: 'IP 地址',
+      dataIndex: 'ips',
+      key: 'ips',
+      render: (ips: string[]) => (ips ?? []).join(', ') || '-',
+    },
+  ];
 
   const portColumns = [
     { title: '主机', dataIndex: 'ip', key: 'ip' },
@@ -139,6 +166,7 @@ export default function TaskDetail() {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const columnMap: Record<string, any[]> = {
+    subdomain: subdomainColumns,
     port: portColumns,
     httpx: httpxColumns,
     dir: dirColumns,
@@ -207,7 +235,7 @@ export default function TaskDetail() {
             children: (
               <Table
                 columns={columnMap[rt.key] || portColumns}
-                dataSource={results.filter((r) => r.type === rt.key).map((r) => ({ ...r.data, _id: r.id }))}
+                dataSource={results.filter((r) => r.type === rt.key).map((r) => ({ ...flattenData(r.data), _id: r.id }))}
                 rowKey="_id"
                 size="middle"
                 pagination={{ pageSize: 20 }}

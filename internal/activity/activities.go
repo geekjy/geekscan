@@ -118,12 +118,16 @@ func (a *Activities) NaabuScanActivity(ctx context.Context, input naabu.ScanInpu
 func (a *Activities) HttpxActivity(ctx context.Context, targets []model.HttpxTarget, opts model.HttpxOptions) ([]model.HttpxResult, error) {
 	logger.L.Infow("HttpxActivity started", "targetCount", len(targets))
 
+	heartbeat := func(progress float64) {
+		activity.RecordHeartbeat(ctx, progress)
+	}
+
 	input := httpx.ScanInput{
 		Targets: targets,
 		Options: opts,
 	}
 
-	results, err := httpx.Scan(ctx, input)
+	results, err := httpx.Scan(ctx, input, heartbeat)
 	if err != nil {
 		logger.L.Errorw("HttpxActivity failed", "error", err)
 		return nil, err
